@@ -468,22 +468,7 @@ xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *,
     struct window *window = (struct window *)data;
     struct display *display = window->conn->dpy;
 
-    bool is_activated = false;
-#ifdef XDG_TOPLEVEL_STATE_SUSPENDED
-    bool is_suspended = false;
-#endif
-    if (states) {
-        const uint32_t *state = static_cast<const uint32_t *>(states->data);
-        const size_t count = states->size / sizeof(uint32_t);
-        for (size_t i = 0; i < count; i++) {
-            if (state[i] == XDG_TOPLEVEL_STATE_ACTIVATED)
-                is_activated = true;
-#ifdef XDG_TOPLEVEL_STATE_SUSPENDED
-            else if (state[i] == XDG_TOPLEVEL_STATE_SUSPENDED)
-                is_suspended = true;
-#endif
-        }
-    }
+    bool is_activated = true;
 
     /* Rising edge of ACTIVATED: the host compositor (Lomiri) just gave this
      * toplevel focus, e.g. the user tapped its entry in the staged switcher.
@@ -529,17 +514,6 @@ xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *,
      * that case. */
     if (is_activated && activation_edge && window->configured)
         attach_pending_stream_buffer(window);
-
-#ifdef XDG_TOPLEVEL_STATE_SUSPENDED
-    /* suspended (xdg-shell v6+) is the explicit "content not visible" signal,
-     * which covers minimize. Feed it into the screen-power decision. Compiled
-     * in only when the protocol header is new enough; harmless if the host
-     * never sends it. */
-    if (window->suspended != is_suspended) {
-        window->suspended = is_suspended;
-        update_screen_power(display);
-    }
-#endif
 
     if (width <= 1 || height <= 1) {
 		/* Compositor is deferring to us */
